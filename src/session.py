@@ -2,6 +2,7 @@ import os
 import json
 import time
 import logging
+import tempfile
 
 # The MCP bridge is spawned by the AI client as a separate process, so it cannot
 # inherit the token from the running daemon. The daemon publishes it here instead,
@@ -22,12 +23,25 @@ def write_session(token, host, port):
     }
     try:
         os.makedirs(SESSION_DIR, exist_ok=True)
-        with open(SESSION_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        # Write to a temp file in the same directory, then atomically replace the
+        # target. os.replace() is atomic on POSIX and Windows, so a concurrent
+        # reader (e.g. the MCP bridge in a separate process) never observes a
+        # partially-written session.json — it sees either the old or the new file.
+        fd, tmp = tempfile.mkstemp(prefix=".session.", suffix=".tmp", dir=SESSION_DIR)
         try:
-            os.chmod(SESSION_FILE, 0o600)
-        except Exception:
-            pass  # Best effort — POSIX modes are only partially honoured on Windows.
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            try:
+                os.chmod(tmp, 0o600)
+            except Exception:
+                pass  # Best effort — POSIX modes are only partially honoured on Windows.
+            os.replace(tmp, SESSION_FILE)
+        finally:
+            if os.path.exists(tmp):
+                try:
+                    os.remove(tmp)
+                except Exception:
+                    pass
         return True
     except Exception as e:
         logging.error(f"[Session] Could not write session file: {e}")
