@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-07-02
+
+### Added
+- **MCP (Model Context Protocol) Bridge**: A stdio JSON-RPC proxy (`src/mcp_server.py`, launched via `python run_conduit.py --mcp`) that lets AI coding agents (Claude Code, Cursor, Antigravity) call Conduit as an MCP server. Commands are forwarded over localhost HTTP to the daemon, preserving the human-in-the-loop approval guarantee. Runtime protocol negotiation supports `2024-11-05`, `2025-03-26`, and `2025-06-18`.
+- **MCP Client Configuration**: `python run_conduit.py --mcp-config` and the `GET /mcp.json` HTTP endpoint emit a ready-to-paste MCP client config block.
+- **`/status` API Fields**: `platform`, `python_version`, and `always_allow_active` exposed on the dashboard status endpoint.
+- **Always Allow Dialog Approval Countdown**: A countdown timer on the GUI approval dialog, with a double-confirmation modal for Always Allow mode.
+
 ## [2.1.0] - 2026-07-02
 
 ### Added

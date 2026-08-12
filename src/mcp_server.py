@@ -18,10 +18,11 @@ import logging
 import urllib.request
 import urllib.error
 
+from src import __version__
 from src.session import read_session
 
 SERVER_NAME = "conduit"
-SERVER_VERSION = "2.2.0"
+SERVER_VERSION = __version__
 
 DEFAULT_PROTOCOL = "2025-06-18"
 SUPPORTED_PROTOCOLS = ("2024-11-05", "2025-03-26", "2025-06-18")

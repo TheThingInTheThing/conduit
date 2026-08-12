@@ -8,6 +8,7 @@ import webbrowser
 # Add the directory containing run_conduit.py to sys.path so we can import src cleanly
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from src import __version__
 from src.config import HOST, PORT, TOKEN, AVAILABLE_SHELLS, DEFAULT_SHELL, IS_WINDOWS
 from src.engine import queue_worker
 from src.server import run_server
@@ -140,7 +141,7 @@ def main():
 
     print("==================================================")
     print("                    CONDUIT                       ")
-    print("      AI Admin Execution Bridge v2.1.0           ")
+    print(f"      AI Admin Execution Bridge v{__version__}            ")
     print("==================================================")
     if src.config.ALWAYS_ALLOW:
         print("[!] ALWAYS ALLOW MODE: ACTIVE (Auto-approving commands)")
