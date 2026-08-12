@@ -14,9 +14,33 @@ COMMAND_QUEUE = Queue(maxsize=5)
 HISTORY = []
 HISTORY_LOCK = threading.Lock()
 
+# Path of the on-disk JSONL command history.
+history_file = os.path.join(ROOT_DIR, "conduit_history.jsonl")
+
+# Cap the on-disk `conduit_history.jsonl` to this many entries, mirroring the
+# in-memory `HISTORY` cap. Prevents unbounded growth for long-lived --headless
+# processes (see issue #9).
+MAX_HISTORY_LINES = 500
+
 # ──────────────────────────────────────────────────────
 # HISTORY LOGGER
 # ──────────────────────────────────────────────────────
+def _rotate_history_file(history_file, max_lines):
+    """Trim `history_file` to its most recent `max_lines` JSON lines, in place."""
+    try:
+        with open(history_file, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        if len(lines) <= max_lines:
+            return
+        # Keep only the most recent entries.
+        with open(history_file, "w", encoding="utf-8") as f:
+            f.writelines(lines[len(lines) - max_lines:])
+    except FileNotFoundError:
+        return
+    except Exception as e:
+        logging.error(f"Failed to rotate history log: {e}")
+
+
 def log_history(request_id, shell, command, status, output, error, duration_ms, exit_code):
     entry = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -34,9 +58,10 @@ def log_history(request_id, shell, command, status, output, error, duration_ms, 
         if len(HISTORY) > 50:
             HISTORY.pop()
     try:
-        history_file = os.path.join(ROOT_DIR, "conduit_history.jsonl")
         with open(history_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
+        # Trim after appending so the file never exceeds MAX_HISTORY_LINES.
+        _rotate_history_file(history_file, MAX_HISTORY_LINES)
     except Exception as e:
         logging.error(f"Failed to write history log: {e}")
 
