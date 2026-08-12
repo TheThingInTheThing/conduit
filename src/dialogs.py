@@ -79,6 +79,7 @@ class ApprovalDialog:
         self.timeout = timeout
         self.result = False
         self._closed = False
+        self._confirming = False
 
         import tkinter as tk
         from tkinter import font as tkfont
@@ -284,7 +285,7 @@ class ApprovalDialog:
         if self._closed:
             return
         remaining = self._deadline - time.monotonic()
-        if remaining <= 0:
+        if remaining <= 0 and not self._confirming:
             self.deny()
             return
         secs = int(remaining + 0.999)
@@ -391,7 +392,17 @@ class ApprovalDialog:
         top.deiconify()
         top.grab_set()
         cancel.focus_set()
-        self.root.wait_window(top)
+        # Pause the countdown while the confirmation modal owns the grab; the modal
+        # blocks in wait_window, so let _tick keep animating but never auto-deny.
+        paused_at = time.monotonic()
+        self._confirming = True
+        try:
+            self.root.wait_window(top)
+        finally:
+            self._confirming = False
+            # Extend the deadline by the paused duration so deciding on the modal does
+            # not cost the user countdown time.
+            self._deadline += time.monotonic() - paused_at
         return result["ok"]
 
 
